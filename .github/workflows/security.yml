@@ -55,6 +55,38 @@ jobs:
         with:
           inputs: requirements-prod.txt
 
+  # ---- SCA: npm dependency vulnerability scan --------------------------
+  # Audits each package.json/package-lock.json pair under version control
+  # (the TS SDK, docs site, and OpenCode/OpenClaw plugins) against their
+  # production dependency set. `npm audit` reads package-lock.json directly,
+  # so no install step is required.
+  npm-audit:
+    name: Dependency audit (npm) - ${{ matrix.dir }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        dir:
+          - docs
+          - sdk/typescript
+          - plugins/opencode
+          - plugins/openclaw
+    defaults:
+      run:
+        working-directory: ${{ matrix.dir }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: ${{ matrix.dir }}/package-lock.json
+
+      - name: Audit dependencies (npm)
+        run: npm audit --omit=dev --audit-level=high
+
   # ---- SAST: CodeQL static analysis ------------------------------------
   codeql:
     name: CodeQL (${{ matrix.language }})
